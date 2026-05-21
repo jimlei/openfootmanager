@@ -6,6 +6,7 @@ import { useSettingsStore, AppSettings } from "../store/settingsStore";
 import { useTheme } from "../context/ThemeContext";
 import { ThemeToggle, Select } from "../components/ui";
 import { SUPPORTED_LANGUAGES, changeAppLanguage } from "../i18n";
+import { resolveBackendError } from "../utils/backendI18n";
 import {
   ArrowLeft,
   Monitor,
@@ -42,6 +43,8 @@ export default function Settings() {
   const [confirmClear, setConfirmClear] = useState(false);
   const [clearSuccess, setClearSuccess] = useState(false);
   const [exportPath, setExportPath] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(
     !!document.fullscreenElement,
   );
@@ -107,15 +110,18 @@ export default function Settings() {
   };
 
   const handleExportWorld = async () => {
+    setExportPath(null);
+    setExportError(null);
+    setIsExporting(true);
     try {
-      // Simple export to app data dir
-      const path = await invoke<string>("export_world_database", {
-        exportPath: "exported_world.json",
-      });
+      const path = await invoke<string>("export_world_database");
       setExportPath(path);
-      setTimeout(() => setExportPath(null), 5000);
     } catch (err) {
-      console.error("Failed to export world:", err);
+      setExportError(
+        resolveBackendError(err) || t("settings.exportFailed"),
+      );
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -351,15 +357,21 @@ export default function Settings() {
           >
             <button
               onClick={handleExportWorld}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-500/10 text-primary-600 dark:text-primary-400 hover:bg-primary-500/20 text-sm font-heading font-bold uppercase tracking-wider transition-colors"
+              disabled={isExporting}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-500/10 text-primary-600 dark:text-primary-400 hover:bg-primary-500/20 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-heading font-bold uppercase tracking-wider transition-colors"
             >
               <Download className="w-4 h-4" />
-              {t("settings.export")}
+              {isExporting ? t("common.loading") : t("settings.export")}
             </button>
           </SettingRow>
           {exportPath && (
-            <p className="text-xs text-primary-500 -mt-2 ml-1">
+            <p className="text-xs text-primary-500 -mt-2 ml-1 break-all">
               {t("settings.exportedTo", { path: exportPath })}
+            </p>
+          )}
+          {exportError && (
+            <p className="text-xs text-red-500 -mt-2 ml-1">
+              {exportError}
             </p>
           )}
 

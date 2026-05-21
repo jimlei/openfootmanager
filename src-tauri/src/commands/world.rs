@@ -123,11 +123,26 @@ pub fn list_world_databases(
 /// Export the current world data to a JSON file so it can be shared/reused.
 #[tauri::command]
 pub fn export_world_database(
+    app_handle: tauri::AppHandle,
     state: State<'_, StateManager>,
-    export_path: String,
 ) -> Result<String, String> {
-    info!("[cmd] export_world_database: path={}", export_path);
-    export_world_database_internal(&state, std::path::Path::new(&export_path))
+    const WRITE_FAILED: &str = "be.error.worldWriteFileFailed";
+    let app_data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|_| WRITE_FAILED.to_string())?;
+    let db_dir = app_data_dir.join("databases");
+    std::fs::create_dir_all(&db_dir).map_err(|_| WRITE_FAILED.to_string())?;
+    let filename = format!(
+        "exported_world_{}.json",
+        chrono::Utc::now().format("%Y%m%d_%H%M%S")
+    );
+    let export_path = db_dir.join(filename);
+    info!(
+        "[cmd] export_world_database: path={}",
+        export_path.display()
+    );
+    export_world_database_internal(&state, &export_path)
 }
 
 /// Write imported world database JSON to the user's databases directory.
