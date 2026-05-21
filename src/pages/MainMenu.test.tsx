@@ -177,27 +177,15 @@ function fillCareerStartDetails(
   });
 }
 
-async function getNationalityTrigger(): Promise<HTMLButtonElement> {
-  let trigger: HTMLButtonElement | null = null;
-
+async function getNationalityCombobox(): Promise<HTMLElement> {
   await waitFor(() => {
-    const fieldContainer = document.getElementById(
-      "create-manager-field-nationality",
-    );
-    const candidate = fieldContainer?.querySelector(
-      "div.relative > button:not([disabled])",
-    );
-
-    trigger = candidate instanceof HTMLButtonElement ? candidate : null;
-
-    expect(trigger).toBeInstanceOf(HTMLButtonElement);
+    const combobox = screen.getByRole("combobox", {
+      name: "createManager.countryOfOrigin",
+    });
+    expect(combobox).toBeEnabled();
   });
 
-  if (!trigger) {
-    throw new Error("Nationality trigger button not found");
-  }
-
-  return trigger;
+  return screen.getByRole("combobox", { name: "createManager.countryOfOrigin" });
 }
 
 async function selectNationality(
@@ -206,8 +194,12 @@ async function selectNationality(
 ): Promise<void> {
   const countryLabel = countryName(nationalityCode, language);
 
-  fireEvent.mouseDown(await getNationalityTrigger());
-  fireEvent.mouseDown(await screen.findByText(countryLabel));
+  fireEvent.click(await getNationalityCombobox());
+  fireEvent.click(
+    await screen.findByRole("option", {
+      name: new RegExp(countryLabel, "i"),
+    }),
+  );
 }
 
 async function searchAndSelectNationality(
@@ -217,17 +209,18 @@ async function searchAndSelectNationality(
 ): Promise<void> {
   const countryLabel = countryName(nationalityCode, language);
 
-  fireEvent.mouseDown(await getNationalityTrigger());
+  fireEvent.click(await getNationalityCombobox());
   const searchInput = await screen.findByPlaceholderText(
     "createManager.searchNationalities",
   );
-  fireEvent.change(
-    searchInput,
-    {
-      target: { value: searchText },
-    },
+  fireEvent.change(searchInput, {
+    target: { value: searchText },
+  });
+  fireEvent.click(
+    await screen.findByRole("option", {
+      name: new RegExp(countryLabel, "i"),
+    }),
   );
-  fireEvent.mouseDown(await screen.findByText(countryLabel));
 }
 
 describe("MainMenu", () => {
@@ -279,10 +272,8 @@ describe("MainMenu", () => {
 
       const localizedCountryName = countryName("ES", language);
       expect(
-        screen.getByRole("button", {
-          name: new RegExp(localizedCountryName, "i"),
-        }),
-      ).toBeInTheDocument();
+        screen.getByRole("combobox", { name: "createManager.countryOfOrigin" }),
+      ).toHaveTextContent(new RegExp(localizedCountryName, "i"));
 
       fireEvent.click(screen.getByText("createManager.chooseWorld"));
 
@@ -322,18 +313,14 @@ describe("MainMenu", () => {
 
     await selectNationality("en", "ES");
     expect(
-      screen.getByRole("button", {
-        name: /spain/i,
-      }),
-    ).toBeInTheDocument();
+      screen.getByRole("combobox", { name: "createManager.countryOfOrigin" }),
+    ).toHaveTextContent(/spain/i);
 
     await selectNationality("en", "DE");
 
     expect(
-      screen.getByRole("button", {
-        name: /germany/i,
-      }),
-    ).toBeInTheDocument();
+      screen.getByRole("combobox", { name: "createManager.countryOfOrigin" }),
+    ).toHaveTextContent(/germany/i);
   });
 
   it("allows selecting England instead of legacy GB", async () => {
@@ -344,10 +331,8 @@ describe("MainMenu", () => {
     await selectNationality("en", "ENG");
 
     expect(
-      screen.getByRole("button", {
-        name: /england/i,
-      }),
-    ).toBeInTheDocument();
+      screen.getByRole("combobox", { name: "createManager.countryOfOrigin" }),
+    ).toHaveTextContent(/england/i);
   });
 
   it("preserves nationality when a stale date picker callback fires after selection", async () => {
@@ -361,20 +346,16 @@ describe("MainMenu", () => {
     await selectNationality("en", "DE");
 
     expect(
-      screen.getByRole("button", {
-        name: /germany/i,
-      }),
-    ).toBeInTheDocument();
+      screen.getByRole("combobox", { name: "createManager.countryOfOrigin" }),
+    ).toHaveTextContent(/germany/i);
 
     act(() => {
       staleDatePickerOnChange?.("1980-01-01");
     });
 
     expect(
-      screen.getByRole("button", {
-        name: /germany/i,
-      }),
-    ).toBeInTheDocument();
+      screen.getByRole("combobox", { name: "createManager.countryOfOrigin" }),
+    ).toHaveTextContent(/germany/i);
   });
 
   it("allows searching localized countries without accents before selecting them", async () => {
@@ -387,10 +368,8 @@ describe("MainMenu", () => {
     await searchAndSelectNationality("pt", "AT", "austria");
 
     expect(
-      screen.getByRole("button", {
-        name: /áustria/i,
-      }),
-    ).toBeInTheDocument();
+      screen.getByRole("combobox", { name: "createManager.countryOfOrigin" }),
+    ).toHaveTextContent(/áustria/i);
 
     fireEvent.click(screen.getByText("createManager.chooseWorld"));
 

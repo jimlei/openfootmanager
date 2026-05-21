@@ -85,4 +85,66 @@ describe("Select", () => {
     expect(hiddenInput).not.toBeNull();
     expect(hiddenInput?.value).toBe("pt");
   });
+
+  it("shows a placeholder when no value is selected", () => {
+    render(
+      <Select value="" placeholder="Pick one" aria-label="Language">
+        <option value="en">English</option>
+        <option value="pt">Português</option>
+      </Select>,
+    );
+
+    expect(screen.getByRole("combobox", { name: "Language" })).toHaveTextContent(
+      "Pick one",
+    );
+  });
+
+  it("shows a placeholder when renderValue is provided but no value is selected", () => {
+    render(
+      <Select
+        value=""
+        placeholder="Pick one"
+        aria-label="Language"
+        renderValue={(option) => (option ? `Selected: ${option.label}` : undefined)}
+      >
+        <option value="en">English</option>
+        <option value="pt">Português</option>
+      </Select>,
+    );
+
+    expect(screen.getByRole("combobox", { name: "Language" })).toHaveTextContent(
+      "Pick one",
+    );
+  });
+
+  it("filters searchable options and supports keyboard selection", () => {
+    const onChange = vi.fn();
+
+    render(
+      <Select
+        searchable
+        searchPlaceholder="Search languages"
+        emptyResultsLabel="Nothing found"
+        aria-label="Language"
+        onChange={onChange}
+      >
+        <option value="en">English</option>
+        <option value="pt">Português</option>
+        <option value="de">Deutsch</option>
+      </Select>,
+    );
+
+    fireEvent.click(screen.getByRole("combobox", { name: "Language" }));
+
+    const searchInput = screen.getByPlaceholderText("Search languages");
+    fireEvent.change(searchInput, { target: { value: "deu" } });
+
+    expect(screen.getByRole("option", { name: "Deutsch" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "English" })).not.toBeInTheDocument();
+
+    fireEvent.keyDown(searchInput, { key: "Enter" });
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange.mock.calls[0][0].target.value).toBe("de");
+  });
 });

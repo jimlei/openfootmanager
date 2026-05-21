@@ -13,13 +13,22 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+function getMonthCombobox() {
+  return screen.getByRole("combobox", { name: "date.month" });
+}
+
+async function selectMonth(label: string) {
+  fireEvent.click(getMonthCombobox());
+  fireEvent.click(await screen.findByRole("option", { name: label }));
+}
+
 describe("DatePicker", () => {
   it("renders the initial ISO date across the day, month, and year fields", () => {
     render(<DatePicker value="1999-02-03" onChange={vi.fn()} />);
 
     expect(screen.getByPlaceholderText("DD")).toHaveValue("03");
     expect(screen.getByPlaceholderText("YYYY")).toHaveValue("1999");
-    expect(screen.getByRole("button", { name: "February" })).toBeInTheDocument();
+    expect(getMonthCombobox()).toHaveTextContent("February");
   });
 
   it("emits a padded ISO date once all fields are complete", async () => {
@@ -29,8 +38,7 @@ describe("DatePicker", () => {
     fireEvent.change(screen.getByPlaceholderText("DD"), { target: { value: "7" } });
     fireEvent.blur(screen.getByPlaceholderText("DD"));
 
-    fireEvent.click(screen.getAllByRole("button")[0]);
-    fireEvent.click(screen.getByRole("button", { name: "March" }));
+    await selectMonth("March");
 
     fireEvent.change(screen.getByPlaceholderText("YYYY"), { target: { value: "2024" } });
 
@@ -45,8 +53,7 @@ describe("DatePicker", () => {
 
     onChange.mockClear();
 
-    fireEvent.click(screen.getByRole("button", { name: "January" }));
-    fireEvent.click(screen.getByRole("button", { name: "February" }));
+    await selectMonth("February");
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText("DD")).toHaveValue("29");
@@ -67,7 +74,7 @@ describe("DatePicker", () => {
     });
   });
 
-  it("normalizes two-digit years on blur using the current century", async () => {
+  it("normalizes two-digit years on blur using the current century", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2025-01-15T12:00:00Z"));
 
@@ -77,8 +84,8 @@ describe("DatePicker", () => {
     fireEvent.change(screen.getByPlaceholderText("DD"), { target: { value: "1" } });
     fireEvent.blur(screen.getByPlaceholderText("DD"));
 
-    fireEvent.click(screen.getAllByRole("button")[0]);
-    fireEvent.click(screen.getByRole("button", { name: "January" }));
+    fireEvent.click(getMonthCombobox());
+    fireEvent.click(screen.getByRole("option", { name: "January" }));
 
     const yearInput = screen.getByPlaceholderText("YYYY");
     fireEvent.change(yearInput, { target: { value: "26" } });
@@ -88,14 +95,13 @@ describe("DatePicker", () => {
     expect(onChange).toHaveBeenLastCalledWith("1926-01-01");
   });
 
-  it("closes the month dropdown on outside clicks", () => {
+  it("opens the month list from the keyboard", async () => {
     render(<DatePicker value="" onChange={vi.fn()} />);
 
-    fireEvent.click(screen.getAllByRole("button")[0]);
-    expect(screen.getByRole("button", { name: "January" })).toBeInTheDocument();
+    const monthCombobox = getMonthCombobox();
+    monthCombobox.focus();
+    fireEvent.keyDown(monthCombobox, { key: "ArrowDown" });
 
-    fireEvent.mouseDown(document.body);
-
-    expect(screen.queryByRole("button", { name: "January" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: "January" })).toBeInTheDocument();
   });
 });

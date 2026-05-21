@@ -210,13 +210,18 @@ export default function CreateManagerForm({
                 </div>
 
                 <div className="flex-1" id="create-manager-field-startPhase">
-                    <label className="mb-1.5 block text-xs font-heading font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    <label
+                        htmlFor="create-manager-start-phase"
+                        className="mb-1.5 block text-xs font-heading font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400"
+                    >
                         {t("createManager.startPhase")}
                     </label>
                     <Select
                         id="create-manager-start-phase"
                         aria-label={t("createManager.startPhase")}
                         fullWidth
+                        variant="form"
+                        selectSize="lg"
                         value={formData.startPhase}
                         className={formErrors.startPhase
                             ? "border-red-400 focus:border-red-500 focus:ring-red-500/20 dark:border-red-500"

@@ -93,6 +93,14 @@
     background-color: var(--color-navy-600);
     border-radius: 9999px;
   }
+
+  .form-placeholder-text {
+    color: var(--color-gray-400, #9ca3af);
+  }
+
+  .dark .form-placeholder-text {
+    color: #6b7280;
+  }
 }
 
 /* Dark mode: fix native select/option dropdown backgrounds on Linux */
