@@ -201,6 +201,53 @@ fn normalize_generated_team(team: &mut Team, players: &mut [Player]) {
         .max(weekly_wage_spend.saturating_mul(MIN_OPENING_RUNWAY_WEEKS));
 }
 
+const REQUIRED_TEAM_STAFF_ROLES: [StaffRole; 4] = [
+    StaffRole::AssistantManager,
+    StaffRole::Coach,
+    StaffRole::Scout,
+    StaffRole::Physio,
+];
+
+/// Ensure every team has the standard coaching backroom roles.
+///
+/// Imported world databases often ship players and managers but omit `staff`.
+/// Backfill only the roles missing for each team so scraped staff are preserved.
+pub fn ensure_world_staff_coverage(teams: &[Team], staff: &mut Vec<Staff>) {
+    if teams.is_empty() {
+        return;
+    }
+
+    let names_def = default_names_definition();
+    let mut rng = rand::rng();
+
+    for team in teams {
+        let existing_roles: Vec<StaffRole> = staff
+            .iter()
+            .filter(|member| member.team_id.as_deref() == Some(team.id.as_str()))
+            .map(|member| member.role.clone())
+            .collect();
+
+        let nationality = if team.football_nation.is_empty() {
+            team.country.as_str()
+        } else {
+            team.football_nation.as_str()
+        };
+
+        for role in REQUIRED_TEAM_STAFF_ROLES {
+            if existing_roles.iter().any(|existing| existing == &role) {
+                continue;
+            }
+            staff.push(generate_random_staff_from_def(
+                &team.id,
+                role,
+                nationality,
+                &names_def,
+                &mut rng,
+            ));
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------
 // World generation
 // ---------------------------------------------------------------------------

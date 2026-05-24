@@ -57,6 +57,7 @@ pub fn load_world_from_json(json: &str) -> Result<WorldData, String> {
         &mut world.staff,
     );
     crate::football_identity::upgrade_world_manager_identities(&world.teams, &mut world.managers);
+    super::ensure_world_staff_coverage(&world.teams, &mut world.staff);
     Ok(world)
 }
 
@@ -233,6 +234,11 @@ mod tests {
         assert_eq!(world.teams[0].football_nation, "ENG");
         assert_eq!(world.players[0].football_nation, "ENG");
         assert_eq!(world.players[0].birth_country, None);
+        assert_eq!(world.staff.len(), 4);
+        assert!(world
+            .staff
+            .iter()
+            .all(|member| member.team_id.as_deref() == Some("team-1")));
         assert!(world.managers.is_empty());
         assert!(world.league.is_none());
         assert!(world.news.is_empty());
